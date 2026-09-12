@@ -572,18 +572,25 @@ function loadSession(){try{return JSON.parse(localStorage.getItem(STORAGE_SESSIO
 // Auth
 function showError(msg){document.getElementById('authError').textContent=msg;}
 function clearError(){document.getElementById('authError').textContent='';}
+// One account identity is shared by registration and login. This prevents
+// visually equivalent names (for example, "Alice", " alice ", and "Ａｌｉｃｅ")
+// from being registered as separate users.
+function normalizeUsername(username){return String(username||'').normalize('NFKC').trim().toLocaleLowerCase();}
 function doRegister(u,p,p2){
-  if(!u.trim()){showError('请输入用户名');return false;}
-  if(u.trim().length<2){showError('用户名至少2个字符');return false;}
+  const username=String(u||'').normalize('NFKC').trim();
+  const usernameKey=normalizeUsername(username);
+  if(!username){showError('请输入用户名');return false;}
+  if(username.length<2){showError('用户名至少2个字符');return false;}
   if(p.length<4){showError('密码至少4位');return false;}
   if(p!==p2){showError('两次密码不一致');return false;}
   const users=getUsers();
-  if(users.find(x=>x.username===u.trim())){showError('用户名已存在');return false;}
-  users.push({username:u.trim(),password:p});saveUsers(users);return true;
+  if(users.find(x=>(x.usernameKey||normalizeUsername(x.username))===usernameKey)){showError('用户名已存在');return false;}
+  users.push({username,password:p,usernameKey});saveUsers(users);return true;
 }
 function doLogin(u,p){
-  if(!u.trim()||!p){showError('请填写用户名和密码');return null;}
-  const user=getUsers().find(x=>x.username===u.trim()&&x.password===p);
+  const usernameKey=normalizeUsername(u);
+  if(!usernameKey||!p){showError('请填写用户名和密码');return null;}
+  const user=getUsers().find(x=>(x.usernameKey||normalizeUsername(x.username))===usernameKey&&x.password===p);
   if(!user){showError('用户名或密码错误');return null;}
   return user;
 }
@@ -993,7 +1000,7 @@ document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key
 (function init(){
   renderCalDayLabels();
   const session=loadSession();
-  if(session&&session.username){const users=getUsers();const found=users.find(x=>x.username===session.username);if(found){initApp(found);return;}}
+  if(session&&session.username){const users=getUsers();const found=users.find(x=>(x.usernameKey||normalizeUsername(x.username))===normalizeUsername(session.username));if(found){initApp(found);return;}}
   document.getElementById('authScreen').classList.remove('hidden');document.getElementById('appScreen').classList.add('hidden');
   document.getElementById('rangeStart').value=todayStr();document.getElementById('rangeEnd').value=todayStr();
 })();
