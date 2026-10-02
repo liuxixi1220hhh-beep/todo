@@ -848,28 +848,41 @@ function importCourseAssignments(){
     {key:'r2-peer-end',date:'2026-11-13',time:'23:30',text:'第19轮线上教学第二次作业：互评截止'},
     {key:'r2-grade',date:'2026-11-15',time:'10:00',text:'第19轮线上教学第二次作业：成绩公布'},
     {key:'exam-open',date:'2026-12-07',time:'08:00',text:'第19轮期末线上客观题考试开放（60分钟，仅一次；完成后务必提交）'},
-    {key:'exam-recommended',date:'2026-12-16',time:'08:00',text:'建议提前完成期末线上客观题考试（每人仅一次，完成后务必提交）'},
     {key:'exam-deadline',date:'2026-12-18',time:'23:30',text:'第19轮期末线上客观题考试提交截止'},
     {key:'exam-results',date:'2026-12-20',time:'10:00',text:'第19轮期末线上客观题考试成绩公布'}
   ];
   const examWindow={key:'exam-window',startDate:'2026-12-07',endDate:'2026-12-18',text:'第19轮期末线上客观题考试时间段（60分钟，每人仅一次；完成后务必提交）'};
+  const examAdvice={key:'exam-advice-day',date:'2026-12-16',text:'建议提前两天完成期末线上客观题考试（每人仅一次，完成后务必提交）'};
   if(!confirm('将截图中的课程作业和期末考试安排导入当前登录账号吗？重复导入不会产生重复事项。'))return;
-  const data=getAllTodos();let added=0;
+  const data=getAllTodos();let added=0,legacyRemoved=false,adviceDone=false;
+  const adviceTodos=Array.isArray(data[examAdvice.date])?data[examAdvice.date]:[];
+  const oldAdvice=adviceTodos.find(t=>t.importTag==='course19-2026'&&t.assignmentKey==='exam-recommended');
+  if(oldAdvice){
+    adviceDone=Boolean(oldAdvice.done);
+    data[examAdvice.date]=adviceTodos.filter(t=>!(t.importTag==='course19-2026'&&t.assignmentKey==='exam-recommended'));
+    legacyRemoved=true;
+  }
   for(const item of assignments){
     const todos=Array.isArray(data[item.date])?data[item.date]:[];
     if(todos.some(t=>t.importTag==='course19-2026'&&t.assignmentKey===item.key))continue;
     todos.push({id:'c19-'+item.key,text:item.text,time:item.time,done:false,color:hashColor(item.text+item.time,TASK_PALETTE),createdAt:new Date().toISOString(),importTag:'course19-2026',assignmentKey:item.key});
     todos.sort((a,b)=>a.time.localeCompare(b.time));data[item.date]=todos;added++;
   }
+  if(added||legacyRemoved)saveAllTodos(data);
   const rangeTodos=getRangeTodos();
   let rangeAdded=0;
-  if(!rangeTodos.some(t=>t.importTag==='course19-2026'&&t.assignmentKey===examWindow.key)){
-    rangeTodos.push({id:'c19-'+examWindow.key,text:examWindow.text,startDate:examWindow.startDate,endDate:examWindow.endDate,done:false,color:hashColor(examWindow.text,RANGE_PALETTE),createdAt:new Date().toISOString(),importTag:'course19-2026',assignmentKey:examWindow.key});
-    saveRangeTodos(rangeTodos);rangeAdded=1;
+  const dateItems=[
+    {key:examWindow.key,startDate:examWindow.startDate,endDate:examWindow.endDate,text:examWindow.text,done:false},
+    {key:examAdvice.key,startDate:examAdvice.date,endDate:examAdvice.date,text:examAdvice.text,done:adviceDone}
+  ];
+  for(const item of dateItems){
+    if(rangeTodos.some(t=>t.importTag==='course19-2026'&&t.assignmentKey===item.key))continue;
+    rangeTodos.push({id:'c19-'+item.key,text:item.text,startDate:item.startDate,endDate:item.endDate,done:item.done,color:hashColor(item.text,RANGE_PALETTE),createdAt:new Date().toISOString(),importTag:'course19-2026',assignmentKey:item.key});
+    rangeAdded++;
   }
-  if(added)saveAllTodos(data);
-  if(added||rangeAdded)renderAll();
-  alert(added||rangeAdded?'已导入'+added+'个时间点和'+rangeAdded+'个考试时间段。':'相关安排已经导入过了。');
+  if(rangeAdded)saveRangeTodos(rangeTodos);
+  if(added||rangeAdded||legacyRemoved)renderAll();
+  alert(added||rangeAdded?'已导入'+added+'个时间点和'+rangeAdded+'个日期/时间段事项。':'相关安排已经导入过了。');
 }
 
 function addTodo(){
