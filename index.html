@@ -277,7 +277,7 @@ body{
     <div class="app-logo">📋 待办清单</div>
     <span class="daily-quote" id="dailyQuote"></span>
     <div class="header-right">
-      <button class="btn-logout" id="btnImportAssignments" title="将截图中的课程作业与考试安排导入当前账号">导入课程安排</button>
+      
       <div class="view-tabs">
         <button class="view-tab active" data-view="day">📋 日视图</button>
         <button class="view-tab" data-view="week">📅 周视图</button>
@@ -611,6 +611,7 @@ function initApp(user){
   document.querySelector('.view-tab[data-view="week"]').classList.remove('active');
   document.querySelector('.mode-tab[data-mode="point"]').classList.add('active');
   document.querySelector('.mode-tab[data-mode="range"]').classList.remove('active');
+  syncCourseAssignments();
   renderAll();setTimeout(scrollToNow,150);
 }
 function logout(){
@@ -835,7 +836,8 @@ function selectDate(dateStr){
   renderAll();
   if(currentView==='day'&&selectedDate===todayStr())setTimeout(scrollToNow,150);
 }
-function importCourseAssignments(){
+function syncCourseAssignments(){
+  if(!currentUser||(currentUser.usernameKey||normalizeUsername(currentUser.username))!==normalizeUsername('刘嘻嘻'))return;
   const assignments=[
     {key:'r1-release',date:'2026-10-12',time:'08:00',text:'第19轮线上教学第一次作业：发布作业'},
     {key:'r1-submit',date:'2026-10-19',time:'23:30',text:'第19轮线上教学第一次作业：提交截止'},
@@ -853,7 +855,6 @@ function importCourseAssignments(){
   ];
   const examWindow={key:'exam-window',startDate:'2026-12-07',endDate:'2026-12-18',text:'第19轮期末线上客观题考试时间段（60分钟，每人仅一次；完成后务必提交）'};
   const examAdvice={key:'exam-advice-day',date:'2026-12-16',text:'建议提前两天完成期末线上客观题考试（每人仅一次，完成后务必提交）'};
-  if(!confirm('将截图中的课程作业和期末考试安排导入当前登录账号吗？重复导入不会产生重复事项。'))return;
   const data=getAllTodos();let added=0,legacyRemoved=false,adviceDone=false;
   const adviceTodos=Array.isArray(data[examAdvice.date])?data[examAdvice.date]:[];
   const oldAdvice=adviceTodos.find(t=>t.importTag==='course19-2026'&&t.assignmentKey==='exam-recommended');
@@ -881,8 +882,7 @@ function importCourseAssignments(){
     rangeAdded++;
   }
   if(rangeAdded)saveRangeTodos(rangeTodos);
-  if(added||rangeAdded||legacyRemoved)renderAll();
-  alert(added||rangeAdded?'已导入'+added+'个时间点和'+rangeAdded+'个日期/时间段事项。':'相关安排已经导入过了。');
+  return added+rangeAdded;
 }
 
 function addTodo(){
@@ -1018,7 +1018,7 @@ document.getElementById('navNext').addEventListener('click',function(){
 document.getElementById('navToday').addEventListener('click',function(){selectDate(todayStr());});
 
 document.getElementById('btnAdd').addEventListener('click',addTodo);
-document.getElementById('btnImportAssignments').addEventListener('click',importCourseAssignments);
+
 document.getElementById('todoInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addTodo();}});
 document.getElementById('btnHabitAdd').addEventListener('click',addHabit);
 document.getElementById('habitInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addHabit();}});
