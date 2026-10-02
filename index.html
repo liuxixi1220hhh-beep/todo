@@ -277,6 +277,7 @@ body{
     <div class="app-logo">📋 待办清单</div>
     <span class="daily-quote" id="dailyQuote"></span>
     <div class="header-right">
+      <button class="btn-logout" id="btnImportAssignments" title="将截图中的课程作业时间导入当前账号">导入作业时间</button>
       <div class="view-tabs">
         <button class="view-tab active" data-view="day">📋 日视图</button>
         <button class="view-tab" data-view="week">📅 周视图</button>
@@ -834,6 +835,31 @@ function selectDate(dateStr){
   renderAll();
   if(currentView==='day'&&selectedDate===todayStr())setTimeout(scrollToNow,150);
 }
+function importCourseAssignments(){
+  const assignments=[
+    {key:'r1-release',date:'2026-10-12',time:'08:00',text:'第19轮线上教学第一次作业：发布作业'},
+    {key:'r1-submit',date:'2026-10-19',time:'23:30',text:'第19轮线上教学第一次作业：提交截止'},
+    {key:'r1-peer-start',date:'2026-10-19',time:'23:30',text:'第19轮线上教学第一次作业：开始互评'},
+    {key:'r1-peer-end',date:'2026-10-23',time:'23:30',text:'第19轮线上教学第一次作业：互评截止'},
+    {key:'r1-grade',date:'2026-10-25',time:'10:00',text:'第19轮线上教学第一次作业：成绩公布'},
+    {key:'r2-release',date:'2026-11-02',time:'08:00',text:'第19轮线上教学第二次作业：发布作业'},
+    {key:'r2-submit',date:'2026-11-09',time:'23:30',text:'第19轮线上教学第二次作业：提交截止'},
+    {key:'r2-peer-start',date:'2026-11-09',time:'23:30',text:'第19轮线上教学第二次作业：开始互评'},
+    {key:'r2-peer-end',date:'2026-11-13',time:'23:30',text:'第19轮线上教学第二次作业：互评截止'},
+    {key:'r2-grade',date:'2026-11-15',time:'10:00',text:'第19轮线上教学第二次作业：成绩公布'}
+  ];
+  if(!confirm('把截图中的10个作业时间节点导入当前登录账号吗？重复点击不会重复添加。'))return;
+  const data=getAllTodos();let added=0;
+  for(const item of assignments){
+    const todos=Array.isArray(data[item.date])?data[item.date]:[];
+    if(todos.some(t=>t.importTag==='course19-2026'&&t.assignmentKey===item.key))continue;
+    todos.push({id:'c19-'+item.key,text:item.text,time:item.time,done:false,color:hashColor(item.text+item.time,TASK_PALETTE),createdAt:new Date().toISOString(),importTag:'course19-2026',assignmentKey:item.key});
+    todos.sort((a,b)=>a.time.localeCompare(b.time));data[item.date]=todos;added++;
+  }
+  if(added){saveAllTodos(data);renderAll();}
+  alert(added?'已导入'+added+'个作业时间节点。':'这10个时间节点已经导入过了。');
+}
+
 function addTodo(){
   const input=document.getElementById('todoInput'),text=input.value.trim();
   if(!text)return;
@@ -967,6 +993,7 @@ document.getElementById('navNext').addEventListener('click',function(){
 document.getElementById('navToday').addEventListener('click',function(){selectDate(todayStr());});
 
 document.getElementById('btnAdd').addEventListener('click',addTodo);
+document.getElementById('btnImportAssignments').addEventListener('click',importCourseAssignments);
 document.getElementById('todoInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addTodo();}});
 document.getElementById('btnHabitAdd').addEventListener('click',addHabit);
 document.getElementById('habitInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addHabit();}});
