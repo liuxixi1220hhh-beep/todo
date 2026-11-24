@@ -612,6 +612,7 @@ function initApp(user){
   document.querySelector('.mode-tab[data-mode="point"]').classList.add('active');
   document.querySelector('.mode-tab[data-mode="range"]').classList.remove('active');
   syncCourseAssignments();
+  syncTotoroCheckIns();
   renderAll();setTimeout(scrollToNow,150);
 }
 function logout(){
@@ -883,6 +884,33 @@ function syncCourseAssignments(){
   }
   if(rangeAdded)saveRangeTodos(rangeTodos);
   return added+rangeAdded;
+}
+
+function syncTotoroCheckIns(){
+  if(!currentUser||(currentUser.usernameKey||normalizeUsername(currentUser.username))!==normalizeUsername('刘嘻嘻'))return;
+
+  const importKey='todo_import_totoro_20261124_'+currentUser.username;
+  if(localStorage.getItem(importKey))return;
+
+  const data=getAllTodos();
+  const endDate=parseDate('2027-01-08');
+  const text='龙猫打卡',time='12:00';
+  const color=hashColor(text+time,TASK_PALETTE),createdAt=new Date().toISOString();
+  let added=false;
+
+  for(const date=parseDate('2026-11-24');date<endDate;date.setDate(date.getDate()+1)){
+    const day=fmtDate(date),id='totoro-check-in-'+day;
+    const todos=Array.isArray(data[day])?data[day]:[];
+    if(todos.some(todo=>todo.id===id||(todo.text===text&&todo.time===time)))continue;
+
+    todos.push({id,text,time,done:false,color,createdAt});
+    todos.sort((a,b)=>a.time.localeCompare(b.time));
+    data[day]=todos;
+    added=true;
+  }
+
+  if(added)saveAllTodos(data);
+  localStorage.setItem(importKey,'1');
 }
 
 function addTodo(){
